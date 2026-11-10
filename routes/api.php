@@ -6,6 +6,9 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\UserDirectoryController;
 use App\Http\Controllers\Api\PostController;
+use App\Http\Controllers\Api\ConnectionRequestController;
+use App\Http\Controllers\Api\PostLikeController;
+use App\Http\Controllers\Api\PostCommentController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -20,8 +23,19 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/profile/photo', [ProfileController::class, 'updatePhoto',]);
     Route::get('/users', [UserDirectoryController::class, 'index']);
     Route::post('/posts', [PostController::class, 'store']);
-
     Route::get('/user', function (Request $request) {
         return response()->json($request->user());
     });
+    Route::get('/posts', [PostController::class, 'index']);
+    Route::get('/posts/{post}', [PostController::class, 'show']);
+    Route::post('/connection-requests', [ConnectionRequestController::class,'store']);
+    Route::get('/connection-requests/received', [ConnectionRequestController::class,'received']);
+    Route::put('/connection-requests/{id}', [ConnectionRequestController::class,'update']);
+    Route::post('/posts/{post}/like', [PostLikeController::class, 'like']);
+    Route::post('/posts/{post}/dislike', [PostLikeController::class, 'dislike']);
+    Route::post('/posts/{post}/comments', [PostCommentController::class, 'store']);
+    Route::get('/posts/{post}/comments', [PostCommentController::class, 'index']);
+    Route::put('/posts/{post}/comments/{comment}', [PostCommentController::class, 'update']);
+    Route::delete('/posts/{post}/comments/{comment}', [PostCommentController::class, 'destroy']);
+
 });

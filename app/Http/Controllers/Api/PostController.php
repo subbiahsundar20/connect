@@ -122,4 +122,79 @@ class PostController extends Controller
             })->values(),
         ];
     }
+    public function index(Request $request)
+    {
+        $validated = $request->validate([
+            'page' => ['sometimes', 'integer', 'min:1'],
+            'perpage' => ['sometimes', 'integer', 'min:1', 'max:50'],
+            'searchtext' => ['sometimes', 'nullable', 'string', 'max:255'],
+        ]);
+
+        $perPage = $validated['perpage'] ?? 10;
+        $searchText = trim($validated['searchtext'] ?? '');
+
+        $posts = Post::with([
+            'user:id,name,bio,profile_photo_path',
+            'images',
+        ])
+        ->when($searchText !== '', function ($query) use ($searchText) {
+            $query->where('content', 'LIKE', "%{$searchText}%");
+        })
+        ->latest()
+        ->paginate($perPage)
+        ->withQueryString();
+
+        $posts->getCollection()->transform(function ($post) {
+
+            if ($post->user && $post->user->profile_photo_path) {
+                $post->user->profile_photo_url =
+                    Storage::disk('public')->url(
+                        $post->user->profile_photo_path
+                    );
+            }
+
+            $post->images->transform(function ($image) {
+                $image->image_url =
+                    Storage::disk('public')->url($image->image_path);
+
+                return $image;
+            });
+
+            return $post;
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Posts retrieved successfully.',
+            'data' => $posts,
+        ]);
+    }
+
+public function show($post)
+    {
+        $post = \App\Models\Post::with([
+            'user:id,name,bio,profile_photo_path',
+            'images',
+        ])->findOrFail($post);
+
+        if ($post->user && $post->user->profile_photo_path) {
+            $post->user->profile_photo_url =
+                \Illuminate\Support\Facades\Storage::disk('public')
+                    ->url($post->user->profile_photo_path);
+        }
+
+        $post->images->transform(function ($image) {
+            $image->image_url =
+                \Illuminate\Support\Facades\Storage::disk('public')
+                    ->url($image->image_path);
+
+            return $image;
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Post details retrieved successfully.',
+            'data' => $post,
+        ]);
+    }
 }
